@@ -1,4 +1,5 @@
 from typing import List
+from tkinter import *
 
 class DataAnalyzer(object):
     """
