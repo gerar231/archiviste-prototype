@@ -1,4 +1,5 @@
-import os, wx
+import os, wx, sys
+sys.path.append(os.path.join(os.path.realpath(__file__), "..", ".."))
 """
     Runs GUI from the command line to analyze files and make search for keywords.
 """
@@ -8,9 +9,10 @@ data_location = os.path.normpath(os.path.join(os.path.realpath(__file__), "..", 
 
 class ArchivisteFrame(wx.Frame):
 
-    def __init__(self, *args, **kw):
+    def __init__(self, parent, title):
         # ensure the parent's __init__ is called
-        super(ArchivisteFrame, self).__init__(*args, **kw)
+        wx.Frame.__init__(self, parent, title=title, size=(500,500))
+        self.SetSize(500, 500)
 
         # FileManager: initialize.
         # SearchHandler: initialize.
@@ -24,24 +26,31 @@ class ArchivisteFrame(wx.Frame):
         self.createMenuBar()
 
         # create the view project interface
-        self.project_view = self.createProjectView()
+        proj_view = self.createProjectView()
 
         # create the analyze project interface
-        self.analyze = self.createAnalyzeControl()
+        analyze_button = self.createAnalyzeControl()
 
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.project_view, 1, wx.EXPAND)
-        self.sizer.Add(self.analyze, 0, wx.EXPAND)
             # progress bar
         # create the search interface
             # text box
             # button
+        search_panel = self.createSearchInterface()
         # create search results display
             # window with hyperlinks/file paths
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.AddSpacer(20)
+        self.sizer.Add(proj_view, 1, wx.EXPAND)
+        self.sizer.AddSpacer(10)
+        self.sizer.Add(analyze_button, 1, wx.EXPAND)
+        self.sizer.AddSpacer(10)
+        self.sizer.Add(search_panel, 1, wx.EXPAND)
+        self.sizer.AddSpacer(20)
         
         # Layout sizer
         self.SetSizer(self.sizer)
-        self.SetAutoLayout(1)
+        self.SetAutoLayout(True)
         self.sizer.Fit(self)
     
     def createMenuBar(self):
@@ -52,7 +61,6 @@ class ArchivisteFrame(wx.Frame):
         filemenu= wx.Menu()
 
         # wx.ID_ABOUT and wx.ID_EXIT are standard IDs provided by wxWidgets.
-        menuViewProject = filemenu.Append(wx.ID_OPEN, "&View Project", "View a project.")
         menuAbout = filemenu.Append(wx.ID_ABOUT, "&About", "Information about Archiviste.")
         menuExit = filemenu.Append(wx.ID_EXIT, "E&xit", "Terminate Archiviste.")
 
@@ -62,40 +70,46 @@ class ArchivisteFrame(wx.Frame):
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
 
         # Set events
-        self.Bind(wx.EVT_MENU, self.OnViewProject, menuViewProject)
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
-
     
     def createProjectView(self):
         """
             Creates the project directory viewer.
         """
-        return wx.StaticText(self.pnl, wx.ID_FILE, "Current Project Directory: \n{}".format(self.curr_dir), style=wx.ALIGN_CENTRE_HORIZONTAL)
-
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        proj_view_text = wx.StaticText(self.pnl, label="VIEW A PROJECT FOLDER:")
+        proj_view = wx.DirPickerCtrl(self.pnl, message="Choose a project directory.")
+        self.Bind(wx.EVT_DIRPICKER_CHANGED, self.OnViewProject, proj_view)
+        sizer.Add(proj_view_text, 1, wx.EXPAND)
+        sizer.Add(proj_view, 1, wx.EXPAND)
+        return sizer
 
     def createAnalyzeControl(self):
         """
             Creates analysis control and progress viewer.
         """
-        # FileManager: get_project_files
-        # DataAnalyzer: analyze current project
-        return wx.Button(self.pnl, label="ANALYZE")
+        analyze_button = wx.Button(self.pnl, label="ANALYZE")
+        self.Bind(wx.EVT_BUTTON, self.OnAnalyze, analyze_button)
+        return analyze_button
     
     def createSearchInterface(self):
         """
             Creates search text box for keywords, query button and project scope dropdown menu.
         """
-        # SearchHandler: parse keywords in a meaningful way.
-        # DataAnalyzer: take in keywords and provide results.
-        # DataAnalyzer: get_analyzed_projects
-        return None
-
-    def makeSearch(self):
-        """
-            Creates search text box and query button.
-        """
-        return None
+        choices = ["1", "2", "3"]
+        search_scope_text = wx.StaticText(self.pnl, label="SELECT SEARCH SCOPE:")
+        search_scope = wx.ComboBox(self.pnl, choices=choices) 
+        search_query_text = wx.StaticText(self.pnl, label="KEYWORDS:")
+        search_query = wx.SearchCtrl(self.pnl)
+        self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchQuery, search_query)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(search_scope_text, 1, wx.EXPAND)
+        sizer.Add(search_scope, 1, wx.EXPAND)
+        sizer.AddSpacer(10)
+        sizer.Add(search_query_text, 1, wx.EXPAND)
+        sizer.Add(search_query, 1, wx.EXPAND)
+        return sizer 
     
     def OnAbout(self, event):
         """
@@ -112,20 +126,30 @@ class ArchivisteFrame(wx.Frame):
         # FileManager: Deauthorize.
         self.Close(True)
     
-    def OnViewProject(self, event):
+    def OnViewProject(self, event: wx.FileDirPickerEvent):
         """
             Procedures for viewing a project for analysis.
         """
-        dlg = wx.DirDialog(self, "Choose a project folder.") 
-        if dlg.ShowModal() == wx.ID_OK:
-            self.curr_dir = dlg.GetPath()
-        dlg.Destroy()
-        # update project view
-        self.createProjectView()
-
-
-
-
+        print("OnViewProject")
+        self.curr_dir = event.GetPath()
+    
+    def OnAnalyze(self, event):
+        """
+            Procedures to analyze the video files in the current directory.
+        """
+        print("OnAnalyze")
+        # FileManager: get_project_files
+        # DataAnalyzer: analyze current project
+        # Update choices
+    
+    def OnSearchQuery(self, event):
+        """
+            Procedures for query provided keywords against the data in scope.
+        """
+        print("OnSearchQuery")
+        # SearchHandler: parse keywords in a meaningful way.
+        # DataAnalyzer: take in keywords and provide results.
+        # DataAnalyzer: get_analyzed_projects
 
 if __name__ == "__main__":
     # When this module is run (not imported) then create the app, the
