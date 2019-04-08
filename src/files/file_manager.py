@@ -24,3 +24,4 @@ class FileManager(object):
         # verify directory
         # fetch all video file paths
         # return a list of video file paths
+        return list()

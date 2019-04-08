@@ -48,11 +48,14 @@ class DataAnalyzer(object):
             of the video file at the same index in the list of provided paths.
         """
         print("DataAnalyzer.analyze_video_paths()")
+        return list()
     
     def get_analyzed_projects(self) -> List[str]:
         """
             Returns a list of directory paths containing analyzed video files.
         """
+        print("DataAnalyzer.get_analyzed_projects()")
+        return list()
     
     def handle_keywords(self, keywords: List[str], project_path: str=None) -> List[str]:
         """
@@ -67,3 +70,4 @@ class DataAnalyzer(object):
         # check each loaded video id
             # api request
         # return the correct path
+        return list()

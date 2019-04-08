@@ -19,3 +19,4 @@ class SearchHandler(object):
             white space.
         """
         print("SearchHandler.parse_keywords()")
+        return list()
