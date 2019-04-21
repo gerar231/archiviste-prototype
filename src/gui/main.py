@@ -10,7 +10,7 @@ from typing import List
     Runs GUI from the command line to analyze files and make search for keywords.
 """
 
-subscription_location = os.path.normpath(os.path.join(os.path.realpath(__file__), "..", "..", "..", "subscription.txt"))
+config_location = os.path.normpath(os.path.join(os.path.realpath(__file__), "..", "..", "..", "config.txt"))
 data_location = os.path.normpath(os.path.join(os.path.realpath(__file__), "..", "..", "..", "data.csv"))
 
 class ArchivisteFrame(wx.Frame):
@@ -25,7 +25,7 @@ class ArchivisteFrame(wx.Frame):
         # FileManager: initialize.
         self.file_manager = FileManager()
         # DataAnalyzer: initialize.
-        self.data_analyzer = DataAnalyzer(subscription_location, data_location)
+        self.data_analyzer = DataAnalyzer(config_location, data_location)
         # SearchHandler: initialize.
         self.search_handler = SearchHandler()
 
@@ -38,23 +38,23 @@ class ArchivisteFrame(wx.Frame):
         proj_view = self.createProjectView()
 
         # create the analyze project interface
-        analyze_button = self.createAnalyzeControl()
+        self.analyze_button = self.createAnalyzeControl()
 
         # create the search interface
-        search_panel = self.createSearchInterface()
+        self.search_panel = self.createSearchInterface()
 
         # create search results display
-        search_results = self.createResultsInterface()
+        self.search_results = self.createResultsInterface()
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.AddSpacer(20)
         self.sizer.Add(proj_view, 0, wx.EXPAND)
         self.sizer.AddSpacer(10)
-        self.sizer.Add(analyze_button, 0, wx.ALIGN_CENTER)
+        self.sizer.Add(self.analyze_button, 0, wx.ALIGN_CENTER)
         self.sizer.AddSpacer(10)
-        self.sizer.Add(search_panel, 0, wx.EXPAND)
+        self.sizer.Add(self.search_panel, 0, wx.EXPAND)
         self.sizer.AddSpacer(10)
-        self.sizer.Add(search_results, 0, wx.EXPAND)
+        self.sizer.Add(self.search_results, 0, wx.EXPAND)
         self.sizer.AddSpacer(20)
         
         # Layout sizer
@@ -108,7 +108,7 @@ class ArchivisteFrame(wx.Frame):
             Creates search text box for keywords, query button and project scope dropdown menu.
         """
         self.data_analyzer.get_analyzed_projects()
-        choices = ["1", "2", "3"]
+        choices = list(self.file_manager.known_video_paths.keys())
         search_scope_text = wx.StaticText(self, label="SELECT SEARCH SCOPE:")
         self.search_scopes = wx.ComboBox(self, choices=choices) 
         search_query_text = wx.StaticText(self, label="KEYWORDS:")
@@ -121,6 +121,15 @@ class ArchivisteFrame(wx.Frame):
         sizer.Add(search_query_text, 0, wx.EXPAND)
         sizer.Add(search_query, 0, wx.EXPAND)
         return sizer 
+    
+    def updateSearchChoices(self):
+        """
+            Updates search scope options based on latest file manager data.
+        """
+        self.search_scopes.Clear()
+        for c in self.file_manager.known_video_paths.keys():
+            self.search_scopes.Append(c)
+        print("updateSearchChoices()")
     
     def createResultsInterface(self):
         """
@@ -137,7 +146,12 @@ class ArchivisteFrame(wx.Frame):
         """
             Message displayed detailing information about this program.
         """
-        dlg = wx.MessageDialog(self, "Archiviste is a query-based AI assistant tuned into the needs and personality of the user.", "About Archiviste", wx.OK)
+        dlg = wx.MessageDialog(self, 
+            """
+            Archiviste uses AI to help you search for files no matter where you've placed them,
+            across multiple platforms on and off the cloud.
+            """, 
+            "About Archiviste", wx.OK)
         dlg.ShowModal()
         dlg.Destroy()
     
@@ -169,6 +183,7 @@ class ArchivisteFrame(wx.Frame):
             if not r:
                 print("Video Index analysis of '{}' failed".format(files_to_analyze[i]))
         # Update choices
+        self.updateSearchChoices()
         # TODO: progress bar
     
     def OnSearchQuery(self, event: wx.CommandEvent):
