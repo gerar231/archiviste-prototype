@@ -1,5 +1,6 @@
 from typing import List
-from tkinter import *
+import os
+import http.client, urllib.request, urllib.parse, urllib.error, base64
 
 class DataAnalyzer(object):
     """
@@ -19,8 +20,32 @@ class DataAnalyzer(object):
             at the provided paths. ValueError if either paths are invalid or subscription key
             is invalid.
         """
-        self.token = None
         self.data_path = data_path
+        with open(os.path.normpath(subscription_path)) as f:
+            self.account_id = f.readline()
+            self.subscription_key = f.readline()
+        # make request for token
+        headers = {
+            # Request headers
+            'Ocp-Apim-Subscription-Key': self.subscription_key,
+        }
+
+        params = urllib.parse.urlencode({
+            # Request parameters
+            'accountId': 
+            'allowEdit': 'True',
+        })
+
+        try:
+            conn = http.client.HTTPSConnection('api.videoindexer.ai')
+            conn.request("GET", "/auth/{location}/Accounts/{accountId}/AccessToken?%s" % params, "{body}", headers)
+            response = conn.getresponse()
+            data = response.read()
+            print(data)
+            conn.close()
+        except Exception as e:
+            print("[Errno {0}] {1}".format(e.errno, e.strerror))
+
         print("DataAnalyzer.__init__()")
 
     def __init_data_path(self, data_path: str):
