@@ -2,7 +2,8 @@ from typing import List
 
 class SearchHandler(object):
     """
-        Handles provided keywords to search the inverted index created by DataAnalyzer.
+        Handles provided keywords to search the inverted index created by 
+        DataAnalyzer.
     """
     def __init__(self, *args, **kwargs):
         """
