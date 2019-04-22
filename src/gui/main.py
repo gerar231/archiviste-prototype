@@ -72,7 +72,7 @@ class ArchivisteFrame(wx.Frame):
 
         # wx.ID_ABOUT and wx.ID_EXIT are standard IDs provided by wxWidgets.
         menuAbout = filemenu.Append(wx.ID_ABOUT, "&About", "Information about Archiviste.")
-        menuExit = filemenu.Append(wx.ID_EXIT, "E&xit", "Terminate Archiviste.")
+        menuExit = filemenu.Append(wx.ID_EXIT, "E&xit", "Terminate Archiviste & Save Analyzed Directories.")
 
         # Creating the menubar.
         menuBar = wx.MenuBar()
@@ -108,7 +108,7 @@ class ArchivisteFrame(wx.Frame):
             Creates search text box for keywords, query button and project scope dropdown menu.
         """
         self.data_analyzer.get_analyzed_projects()
-        choices = list(self.file_manager.known_video_paths.keys())
+        choices = list(self.data_analyzer.get_analyzed_projects())
         search_scope_text = wx.StaticText(self, label="SELECT SEARCH SCOPE:")
         self.search_scopes = wx.ComboBox(self, choices=choices) 
         search_query_text = wx.StaticText(self, label="KEYWORDS:")
@@ -127,7 +127,8 @@ class ArchivisteFrame(wx.Frame):
             Updates search scope options based on latest file manager data.
         """
         self.search_scopes.Clear()
-        for c in self.file_manager.known_video_paths.keys():
+        for c in self.data_analyzer.get_analyzed_projects():
+            print(c)
             self.search_scopes.Append(c)
         print("updateSearchChoices()")
     
@@ -161,6 +162,7 @@ class ArchivisteFrame(wx.Frame):
         """
         # FileManager: Deauthorize.
         self.data_analyzer.deauthorize()
+        self.data_analyzer.save_data_csv()
         self.Close(True)
     
     def OnViewProject(self, event: wx.FileDirPickerEvent):
@@ -178,10 +180,7 @@ class ArchivisteFrame(wx.Frame):
         # FileManager: get_project_files
         files_to_analyze = self.file_manager.get_project_files(self.curr_dir)
         # DataAnalyzer: analyze current project
-        results = self.data_analyzer.analyze_video_paths(files_to_analyze)
-        for i, r in enumerate(results):
-            if not r:
-                print("Video Index analysis of '{}' failed".format(files_to_analyze[i]))
+        self.data_analyzer.analyze_video_paths(files_to_analyze)
         # Update choices
         self.updateSearchChoices()
         # TODO: progress bar
@@ -192,14 +191,18 @@ class ArchivisteFrame(wx.Frame):
         """
         print("OnSearchQuery")
         # SearchHandler: parse keywords in a meaningful way.
-        keywords = self.search_handler.parse_keywords(event.GetString())
+        raw_query = event.GetString()
+        keywords = self.search_handler.parse_keywords(raw_query)
+        # Get the scope of the search
+        scope = self.search_scopes.GetValue()
         # DataAnalyzer: take in keywords and provide results.
         results = self.data_analyzer.handle_keywords(keywords)
         # DataAnalyzer: get_analyzed_projects
         for r in results:
             print(r)
         # update results
-        self.results.SetLabel(event.GetString())
+        self.results.SetLabel("Searched for {} in {}."
+            .format(raw_query, scope))
 
 if __name__ == "__main__":
     # When this module is run (not imported) then create the app, the
