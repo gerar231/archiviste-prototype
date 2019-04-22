@@ -10,7 +10,6 @@ class FileManager(object):
         """
             Initializes this FileManager instance.
         """
-        self.known_video_paths = dict()
         print("FileManager.__init__()")
     
     def get_project_files(self, path: str) -> List[str]:
@@ -19,9 +18,9 @@ class FileManager(object):
                 path: the file path of a directory containing video files to load.
 
             Returns a list of valid video file paths in the provided directory 
-            path which are added to the known video paths. Assumes all files in 
-            folder are video files, recursive directory loading not yet supported. 
-            ValueError if path is invalid or not a directory.
+            path. Assumes all files in folder are video files, recursive 
+            directory loading not yet supported. ValueError if path is invalid 
+            or not a directory.
         """
         print("FileManager.get_project_files()")
         # verify directory
@@ -29,11 +28,11 @@ class FileManager(object):
             return ValueError("""Invalid path passed to 
                 FileManager.get_project_files().""")
         # fetch all video file paths
-        video_paths = {p for f in os.listdir(path) 
-            for p in os.path.join(path, f) if os.path.isfile(p)}
-        if self.known_video_paths.get(path) is None:
-            self.known_video_paths[path] = video_paths
-        else:
-            self.known_video_paths[path] = self.known_video_paths[path].union(video_paths)
-        print(self.known_video_paths)
+        print(os.listdir(path))
+        video_files = os.listdir(path)
+        video_paths = list()
+        for f in video_files:
+            p = os.path.join(path, f)
+            if os.path.isfile(p):
+                video_paths.append(p)
         return video_paths
