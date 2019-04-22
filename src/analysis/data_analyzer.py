@@ -1,5 +1,5 @@
-from typing import List
-import os
+from typing import List, Dict, Set, Tuple
+import os, json, csv
 import http.client, urllib.request, urllib.parse, urllib.error, base64
 
 class DataAnalyzer(object):
@@ -20,42 +20,86 @@ class DataAnalyzer(object):
             at the provided paths. ValueError if either paths are invalid or subscription key
             is invalid.
         """
-        self.data_path = data_path
+        # directory path -> (filepath, videoId)
+        self.analyzed_paths = dict()
+        self.__data_path = data_path
+        self.__next_vid_id = self.__init_data_path(self.__data_path)
+        self.__loc = 'westus2'
         with open(os.path.normpath(subscription_path)) as f:
-            self.account_id = f.readline()
-            self.subscription_key = f.readline()
+            self.__id = f.readline().strip()
+            self.__key = f.readline().strip()
         # make request for token
-        headers = {
-            # Request headers
-            'Ocp-Apim-Subscription-Key': self.subscription_key,
-        }
-
-        params = urllib.parse.urlencode({
-            # Request parameters
-            'accountId': 
-            'allowEdit': 'True',
-        })
-
+        headers = {'Ocp-Apim-Subscription-Key': self.__key} 
+        params = {'allowEdit': 'false'}
+        conn = http.client.HTTPSConnection('api.videoindexer.ai')
+        data = self.__request_to_json(conn, "GET", 
+            "/auth/{}/Accounts/{}/AccessToken?".format(self.__loc, self.__id), 
+            params, headers)
+        conn.close()
+        # confirm token request success
+        print("DataAnalyzer.__init__()")
+        print(data)
+        # print("SampleAccessToken : {}".format(data['SampleAccessToken']))
+    
+    def __request_to_json(self, conn: http.client.HTTPConnection, type: str,
+        url: str, params: Dict[str, str], headers: Dict[str, str], 
+        body: str=None) -> Dict[str, str]:
+        """
+            Makes a request to the HTTP Connection using the params, headers and
+            body and returns a json response.
+        """
+        data = None
+        encoded_params = urllib.parse.urlencode(params)
+        full_url = "{}{}".format(url, encoded_params)
         try:
-            conn = http.client.HTTPSConnection('api.videoindexer.ai')
-            conn.request("GET", "/auth/{location}/Accounts/{accountId}/AccessToken?%s" % params, "{body}", headers)
+            conn.request(type, full_url, body, headers)
             response = conn.getresponse()
-            data = response.read()
-            print(data)
-            conn.close()
+            data = json.loads(response.read().decode('utf-8'))
         except Exception as e:
             print("[Errno {0}] {1}".format(e.errno, e.strerror))
+        return data
 
-        print("DataAnalyzer.__init__()")
-
-    def __init_data_path(self, data_path: str):
+    def __init_data_path(self, data_path: str) -> int:
         """
             Keyword Arguments:
-                data_path: path of the file containing analysis file paths -> video id mappings.
+                data_path: path of the file containing analysis file paths 
+                           -> video id mappings.
             
             Initializes the analysis data file at the provided path.
+            Returns the next video id > maximum video id in provided data.
         """
         print("DataAnalyzer.__init_data_path()")
+        max_id = 0
+        with open(data_path, newline='') as f:
+            reader = csv.reader(f, delimiter=",")
+            for row in reader:
+                path = row[0]
+                vid_id = int(row[1])
+                dir_name, file_name = os.path.split(os.path.normpath(path))
+                if self.analyzed_paths.get(dir_name) is None:
+                    self.analyzed_paths[dir_name] = set()
+                self.analyzed_paths[dir_name].add((file_name, vid_id))
+                max_id = max(max_id, vid_id)
+        # set the next vid id
+        return max_id + 1
+    
+    def save_data_csv(self):
+        """
+            Keyword Arguments:
+                data_path: path of the file to save analysis file paths 
+                           -> video id mappings.
+            Saves all known analyzed video paths -> video ids in the provided
+            path.
+        """
+        print("DataAnalyzer.__save_data_csv()")
+        with open(self.__data_path, 'w', newline='') as f:
+            writer = csv.writer(f, delimiter=",")
+            for dir_name in self.analyzed_paths.keys():
+                for file_name, vid_id in self.analyzed_paths.get(dir_name):
+                    writer.writerow(
+                        (os.path.normpath(os.path.join(dir_name, file_name)), 
+                        vid_id)
+                    )
 
     def deauthorize(self):
         """
@@ -64,32 +108,83 @@ class DataAnalyzer(object):
         print("DataAnalyzer.deauthorize()")
         # API Request
     
-    def analyze_video_paths(self, paths: List[str]) -> List[bool]:
+    def analyze_video_paths(self, paths: List[str]) -> List[Tuple[str, bool]]:
         """
             Keyword Arguments:
                 paths: a list of valid video paths to analyze.
             
-            Returns a list of bools corresponding to a successful analysis
-            of the video file at the same index in the list of provided paths.
+            Returns a list of (path, bool) tuples corresponding to a successful 
+            analysis of the video file at the same index in the list of provided 
+            paths.
         """
         print("DataAnalyzer.analyze_video_paths()")
-        return list()
+        results = list()
+        conn = http.client.HTTPSConnection('api.videoindexer.ai')
+        for p in paths:
+            upload_result = self.__upload_video(conn, p, self.__next_vid_id)
+            if not upload_result:
+                print("Video Index upload of '{}' failed".format(p))
+            else:
+                dir_name, file_name = os.path.split(p)
+                if self.analyzed_paths.get(dir_name) is None:
+                    self.analyzed_paths[dir_name] = set()
+                self.analyzed_paths[dir_name].add((file_name, self.__next_vid_id))
+                self.__next_vid_id += 1
+            results.append((p, upload_result))
+        conn.close()
+        return results
     
-    def get_analyzed_projects(self) -> List[str]:
+    def __upload_video(self, conn: http.client.HTTPConnection, path: str, vid_id: int) -> bool:
         """
-            Returns a list of directory paths containing analyzed video files.
+            Uploads one video at the given path on disk using the given
+            connection, returns True if the upload
+            was successful.
         """
-        print("DataAnalyzer.get_analyzed_projects()")
-        return list()
+        """
+        headers = {'Content-Type': 'multipart/form-data'}
+        params = {
+            'name': '{string}',
+            'accessToken': '{string}',
+            'privacy': 'Private',
+            'priority': '{string}',
+            'description': 'uploaded by archiviste',
+            'partition': '{string}',
+            'externalId': str(vid_id),
+            'externalUrl': '{string}',
+            'callbackUrl': '{string}',
+            'metadata': '{string}',
+            'language': '{string}',
+            'videoUrl': '{string}',
+            'fileName': os.path.basename(path),
+            'indexingPreset': 'Default',
+            'streamingPreset': 'Default',
+            'linguisticModelId': '{string}',
+            'personModelId': '{string}',
+            'sendSuccessEmail': 'False',
+            'assetId': '{string}',
+            'brandsCategories': '{string}',
+        }
+        data = self.__request_to_json(conn, "POST",
+            "/{}/Accounts/{}/Videos?".format(self.__loc, self.__id), 
+            params, headers)
+        """
+        return True 
+    
+    def get_analyzed_projects(self) -> Set[str]:
+        """
+            Returns a Set of directory paths.
+        """
+        return self.analyzed_paths.keys()
     
     def handle_keywords(self, keywords: List[str], project_path: str=None) -> List[str]:
         """
             Keyword Arguments:
                 keywords: keywords queried against the data of analyzed videos.
-                project_path: if provided only video files under this root directory will be checked.
+                project_path: if provided only video files under this root 
+                              directory will be checked.
             
-            Returns a List[str] of valid file paths for video files that contain data
-            related to the provided keywords. Empty if no results.
+            Returns a List[str] of valid file paths for video files that contain 
+            data related to the provided keywords. Empty if no results.
         """
         print("DataAnalyzer.handle_keywords()")
         # check each loaded video id
