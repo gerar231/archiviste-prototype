@@ -1,4 +1,5 @@
 from typing import List, Dict, Set, Tuple
+from datetime import datetime, timezone
 import os, json, csv
 import http.client, urllib.request, urllib.parse, urllib.error, base64
 
@@ -9,7 +10,7 @@ class DataAnalyzer(object):
         about a file based on it's analysis in the Microsoft Video Indexer.
     """
 
-    def __init__(self, subscription_path: str, data_path: str):
+    def __init__(self, subscription_path: str, data_path: str, token_path: str):
         """
             Keyword Arguments:
                 path: path of the file containing the subscription key.
@@ -30,18 +31,16 @@ class DataAnalyzer(object):
             self.__key = f.readline().strip()
         # make request for token
         headers = {'Ocp-Apim-Subscription-Key': self.__key} 
-        params = {'allowEdit': 'false'}
+        params = {'allowEdit': 'true'}
         conn = http.client.HTTPSConnection('api.videoindexer.ai')
-        data = self.__request_to_json(conn, "GET", 
+        self.__token = self.__request_to_json(conn, "GET", 
             "/auth/{}/Accounts/{}/AccessToken?".format(self.__loc, self.__id), 
             params, headers)
         conn.close()
         # confirm token request success
         print("DataAnalyzer.__init__()")
-        print(data)
-        # print("SampleAccessToken : {}".format(data['SampleAccessToken']))
     
-    def __request_to_json(self, conn: http.client.HTTPConnection, type: str,
+    def __request_to_json(self, conn: http.client.HTTPConnection, req_type: str,
         url: str, params: Dict[str, str], headers: Dict[str, str], 
         body: str=None) -> Dict[str, str]:
         """
@@ -51,8 +50,9 @@ class DataAnalyzer(object):
         data = None
         encoded_params = urllib.parse.urlencode(params)
         full_url = "{}{}".format(url, encoded_params)
+        print("Made request to: {}".format(full_url))
         try:
-            conn.request(type, full_url, body, headers)
+            conn.request(req_type, full_url, body, headers)
             response = conn.getresponse()
             data = json.loads(response.read().decode('utf-8'))
         except Exception as e:

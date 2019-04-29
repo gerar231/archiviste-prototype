@@ -8,6 +8,7 @@ from typing import List
 
 """
     Runs GUI from the command line to analyze files and make search for keywords.
+    TODO: ADD DISCLAIMER ABOUT SECURITY/PRIVACY.
 """
 
 config_location = os.path.normpath(os.path.join(os.path.realpath(__file__), "..", "..", "..", "config.txt"))
