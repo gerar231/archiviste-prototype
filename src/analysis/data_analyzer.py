@@ -21,7 +21,7 @@ class DataAnalyzer(object):
             at the provided paths. ValueError if either paths are invalid or subscription key
             is invalid.
         """
-        # directory path -> (filepath, videoId)
+        # directory path -> (filename, videoId)
         self.analyzed_paths = dict()
         self.__data_path = data_path
         # TODO: add in a partition field (hostname?)
@@ -150,8 +150,24 @@ class DataAnalyzer(object):
             Returns a List[str] of valid file paths for video files that contain 
             data related to the provided keywords. Empty if no results.
         """
-        print("DataAnalyzer.handle_keywords()")
-        # check each loaded video id
-            # api request
-        # return the correct path
-        return list()
+        params={'query': keywords,
+                'accessToken': self.__token}
+        response = requests.get(
+            "https://api.videoindexer.ai/{}/Accounts/{}/Videos?"
+            .format(self.__loc, self.__id), 
+            params=params).json()
+
+        # all matching videos
+        found_matches = set()
+        for result in response['results']:
+            print(result)
+            found_matches.add(int(result['externalId']))
+
+        # all matching videos
+        found_paths = list()        
+        for dir_name in self.analyzed_paths.keys():
+            for file_name, vid_id in self.analyzed_paths.get(dir_name):
+                if vid_id in found_matches:
+                    found_paths.append(os.path.join(dir_name, file_name))
+
+        return found_paths

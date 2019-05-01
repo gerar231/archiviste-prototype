@@ -11,7 +11,7 @@ class SearchHandler(object):
         """
         print("SearchHandler.__init__()")
     
-    def parse_keywords(self, keywords) -> List[str]:
+    def parse_keywords(self, keywords: str) -> List[str]:
         """
             Keyword Arguments:
                 keywords: keywords that form a query provided as a single string.
@@ -20,4 +20,4 @@ class SearchHandler(object):
             white space.
         """
         print("SearchHandler.parse_keywords()")
-        return list()
+        return keywords.rsplit()

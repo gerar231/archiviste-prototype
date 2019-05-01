@@ -48,14 +48,19 @@ class ArchivisteFrame(wx.Frame):
         self.search_results = self.createResultsInterface()
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.SetBackgroundColour(wx.WHITE)
+        path = os.path.normpath('C:\\Users\\Gerard\\projects\\archiviste-prototype\\Archiviste_Web.png')
+        image = wx.Image(path, wx.BITMAP_TYPE_ANY)
+        imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.BitmapFromImage(image))
+        self.sizer.Add(imageBitmap, 0, wx.ALIGN_CENTER)
         self.sizer.AddSpacer(20)
-        self.sizer.Add(proj_view, 0, wx.EXPAND)
+        self.sizer.Add(proj_view, 0, wx.ALIGN_CENTER)
         self.sizer.AddSpacer(10)
         self.sizer.Add(self.analyze_button, 0, wx.ALIGN_CENTER)
         self.sizer.AddSpacer(10)
-        self.sizer.Add(self.search_panel, 0, wx.EXPAND)
+        self.sizer.Add(self.search_panel, 0, wx.ALIGN_CENTER)
         self.sizer.AddSpacer(10)
-        self.sizer.Add(self.search_results, 0, wx.EXPAND)
+        self.sizer.Add(self.search_results, 0, wx.ALIGN_CENTER)
         self.sizer.AddSpacer(20)
         
         # Layout sizer
@@ -90,6 +95,8 @@ class ArchivisteFrame(wx.Frame):
         """
         sizer = wx.BoxSizer(wx.VERTICAL)
         proj_view_text = wx.StaticText(self, label="VIEW A PROJECT FOLDER:")
+        font = wx.Font(18, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL, False)
+        proj_view_text.SetFont(font)
         proj_view = wx.DirPickerCtrl(self, message="Choose a project directory.")
         self.Bind(wx.EVT_DIRPICKER_CHANGED, self.OnViewProject, proj_view)
         sizer.Add(proj_view_text, 0, wx.EXPAND)
@@ -101,6 +108,8 @@ class ArchivisteFrame(wx.Frame):
             Creates analysis control and progress viewer.
         """
         analyze_button = wx.Button(self, label="ANALYZE")
+        font = wx.Font(14, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_LIGHT, False)
+        analyze_button.SetFont(font)
         self.Bind(wx.EVT_BUTTON, self.OnAnalyze, analyze_button)
         return analyze_button
     
@@ -110,9 +119,13 @@ class ArchivisteFrame(wx.Frame):
         """
         self.data_analyzer.get_analyzed_projects()
         choices = list(self.data_analyzer.get_analyzed_projects())
-        search_scope_text = wx.StaticText(self, label="SELECT SEARCH SCOPE:")
+        search_scope_text = wx.StaticText(self, label="SELECT PROJECT:")
+        font = wx.Font(18, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False)
+        search_scope_text.SetFont(font)
         self.search_scopes = wx.ComboBox(self, choices=choices) 
         search_query_text = wx.StaticText(self, label="KEYWORDS:")
+        font = wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_LIGHT, False)
+        search_query_text.SetFont(font)
         search_query = wx.SearchCtrl(self)
         self.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchQuery, search_query)
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -138,7 +151,12 @@ class ArchivisteFrame(wx.Frame):
             Creates area for results from the last search query.
         """
         results_text = wx.StaticText(self, label="SEARCH RESULTS:")
+        #font = wx.Font(18, wx.FONTFAMILY_MODERN, wx.NORMAL_FONT, wx.FONTWEIGHT_BOLD)
+        font = wx.Font(18, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, True)
+        results_text.SetFont(font)
         self.results = wx.StaticText(self, label="None")
+        font = wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False)
+        self.results.SetFont(font)
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(results_text, 0, wx.EXPAND)
         sizer.Add(self.results, 0, wx.EXPAND)
@@ -162,7 +180,6 @@ class ArchivisteFrame(wx.Frame):
             Procedures for closing the frame, terminating the application.
         """
         # FileManager: Deauthorize.
-        self.data_analyzer.deauthorize()
         self.data_analyzer.save_data_csv()
         self.Close(True)
     
@@ -197,13 +214,13 @@ class ArchivisteFrame(wx.Frame):
         # Get the scope of the search
         scope = self.search_scopes.GetValue()
         # DataAnalyzer: take in keywords and provide results.
-        results = self.data_analyzer.handle_keywords(keywords)
+        results = self.data_analyzer.handle_keywords(keywords, scope)
         # DataAnalyzer: get_analyzed_projects
+        result_string = "\n"
         for r in results:
-            print(r)
+            result_string += "{}\n".format(r)
         # update results
-        self.results.SetLabel("Searched for {} in {}."
-            .format(raw_query, scope))
+        self.results.SetLabel(result_string)
 
 if __name__ == "__main__":
     # When this module is run (not imported) then create the app, the
