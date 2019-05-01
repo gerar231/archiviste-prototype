@@ -24,6 +24,7 @@ class DataAnalyzer(object):
         # directory path -> (filepath, videoId)
         self.analyzed_paths = dict()
         self.__data_path = data_path
+        # TODO: add in a partition field (hostname?)
         self.__next_vid_id = self.__init_data_path(self.__data_path)
         self.__loc = 'westus2'
         with open(os.path.normpath(subscription_path)) as f:
@@ -72,6 +73,7 @@ class DataAnalyzer(object):
             Saves all known analyzed video paths -> video ids in the provided
             path.
         """
+        # TODO: add in a partition field (hostname?)
         print("DataAnalyzer.__save_data_csv()")
         with open(self.__data_path, 'w', newline='') as f:
             writer = csv.writer(f, delimiter=",")
@@ -81,13 +83,6 @@ class DataAnalyzer(object):
                         (os.path.normpath(os.path.join(dir_name, file_name)), 
                         vid_id)
                     )
-
-    def deauthorize(self):
-        """
-            Deauthorizes the account access token used in this session.
-        """
-        print("DataAnalyzer.deauthorize()")
-        # API Request
     
     def analyze_video_paths(self, paths: List[str]) -> List[Tuple[str, bool]]:
         """
@@ -119,6 +114,7 @@ class DataAnalyzer(object):
             connection, returns True if the upload
             was successful.
         """
+        # TODO: add in a partition field (hostname?)
         print("VIDEO UPLOAD ATTEMPTED for file {}".format(path))
         params = {
             'name': os.path.basename(path),
