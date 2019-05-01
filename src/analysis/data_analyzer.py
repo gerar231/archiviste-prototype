@@ -1,7 +1,7 @@
 from typing import List, Dict, Set, Tuple
 from datetime import datetime, timezone
 import os, json, csv
-import http.client, urllib.request, urllib.parse, urllib.error, base64
+import requests
 
 class DataAnalyzer(object):
     """
@@ -10,7 +10,7 @@ class DataAnalyzer(object):
         about a file based on it's analysis in the Microsoft Video Indexer.
     """
 
-    def __init__(self, subscription_path: str, data_path: str, token_path: str):
+    def __init__(self, subscription_path: str, data_path: str):
         """
             Keyword Arguments:
                 path: path of the file containing the subscription key.
@@ -32,33 +32,14 @@ class DataAnalyzer(object):
         # make request for token
         headers = {'Ocp-Apim-Subscription-Key': self.__key} 
         params = {'allowEdit': 'true'}
-        conn = http.client.HTTPSConnection('api.videoindexer.ai')
-        self.__token = self.__request_to_json(conn, "GET", 
-            "/auth/{}/Accounts/{}/AccessToken?".format(self.__loc, self.__id), 
-            params, headers)
-        conn.close()
+        self.__token = requests.get(
+            "https://api.videoindexer.ai/auth/{}/Accounts/{}/AccessToken?"
+            .format(self.__loc, self.__id), 
+            params=params, headers=headers).json()
+        print(self.__token)
         # confirm token request success
         print("DataAnalyzer.__init__()")
     
-    def __request_to_json(self, conn: http.client.HTTPConnection, req_type: str,
-        url: str, params: Dict[str, str], headers: Dict[str, str], 
-        body: str=None) -> Dict[str, str]:
-        """
-            Makes a request to the HTTP Connection using the params, headers and
-            body and returns a json response.
-        """
-        data = None
-        encoded_params = urllib.parse.urlencode(params)
-        full_url = "{}{}".format(url, encoded_params)
-        print("Made request to: {}".format(full_url))
-        try:
-            conn.request(req_type, full_url, body, headers)
-            response = conn.getresponse()
-            data = json.loads(response.read().decode('utf-8'))
-        except Exception as e:
-            print("[Errno {0}] {1}".format(e.errno, e.strerror))
-        return data
-
     def __init_data_path(self, data_path: str) -> int:
         """
             Keyword Arguments:
@@ -119,9 +100,8 @@ class DataAnalyzer(object):
         """
         print("DataAnalyzer.analyze_video_paths()")
         results = list()
-        conn = http.client.HTTPSConnection('api.videoindexer.ai')
         for p in paths:
-            upload_result = self.__upload_video(conn, p, self.__next_vid_id)
+            upload_result = self.__upload_video(p, self.__next_vid_id)
             if not upload_result:
                 print("Video Index upload of '{}' failed".format(p))
             else:
@@ -131,44 +111,32 @@ class DataAnalyzer(object):
                 self.analyzed_paths[dir_name].add((file_name, self.__next_vid_id))
                 self.__next_vid_id += 1
             results.append((p, upload_result))
-        conn.close()
         return results
     
-    def __upload_video(self, conn: http.client.HTTPConnection, path: str, vid_id: int) -> bool:
+    def __upload_video(self, path: str, vid_id: int) -> bool:
         """
             Uploads one video at the given path on disk using the given
             connection, returns True if the upload
             was successful.
         """
-        """
-        headers = {'Content-Type': 'multipart/form-data'}
+        print("VIDEO UPLOAD ATTEMPTED for file {}".format(path))
         params = {
-            'name': '{string}',
-            'accessToken': '{string}',
+            'name': os.path.basename(path),
+            'accessToken': self.__token,
             'privacy': 'Private',
-            'priority': '{string}',
             'description': 'uploaded by archiviste',
-            'partition': '{string}',
             'externalId': str(vid_id),
-            'externalUrl': '{string}',
-            'callbackUrl': '{string}',
-            'metadata': '{string}',
-            'language': '{string}',
-            'videoUrl': '{string}',
             'fileName': os.path.basename(path),
-            'indexingPreset': 'Default',
-            'streamingPreset': 'Default',
-            'linguisticModelId': '{string}',
-            'personModelId': '{string}',
-            'sendSuccessEmail': 'False',
-            'assetId': '{string}',
-            'brandsCategories': '{string}',
+            'indexingPreset': 'Default'
         }
-        data = self.__request_to_json(conn, "POST",
-            "/{}/Accounts/{}/Videos?".format(self.__loc, self.__id), 
-            params, headers)
-        """
-        return True 
+        response = None
+        with open(path, 'rb') as v:
+            response = requests.post(
+                "https://api.videoindexer.ai/{}/Accounts/{}/Videos?"
+                .format(self.__loc, self.__id), 
+                params=params, files={'video':v})
+        print(response)
+        return response.status_code == requests.codes.ok 
     
     def get_analyzed_projects(self) -> Set[str]:
         """

@@ -3,3 +3,4 @@ data.csv
 config.txt
 *.pyc
 *__pycache__*
+/videos
