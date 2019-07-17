@@ -23,9 +23,12 @@ class DataAnalyzer(object):
         """
         # directory path -> (filename, videoId)
         self.analyzed_paths = dict()
+        # keyword -> videoId
+        self.tags = dict()
         self.__data_path = data_path
         # TODO: add in a partition field (hostname?)
         self.__next_vid_id = self.__init_data_path(self.__data_path)
+        """
         self.__loc = 'westus2'
         with open(os.path.normpath(subscription_path)) as f:
             self.__id = f.readline().strip()
@@ -39,6 +42,7 @@ class DataAnalyzer(object):
             params=params, headers=headers).json()
         print(self.__token)
         # confirm token request success
+        """
         print("DataAnalyzer.__init__()")
     
     def __init_data_path(self, data_path: str) -> int:
@@ -116,6 +120,7 @@ class DataAnalyzer(object):
         """
         # TODO: add in a partition field (hostname?)
         print("VIDEO UPLOAD ATTEMPTED for file {}".format(path))
+        """
         params = {
             'name': os.path.basename(path),
             'accessToken': self.__token,
@@ -133,6 +138,8 @@ class DataAnalyzer(object):
                 params=params, files={'video':v})
         print(response)
         return response.status_code == requests.codes.ok 
+        """
+        return True
     
     def get_analyzed_projects(self) -> Set[str]:
         """
@@ -150,18 +157,19 @@ class DataAnalyzer(object):
             Returns a List[str] of valid file paths for video files that contain 
             data related to the provided keywords. Empty if no results.
         """
+        """
         params={'query': keywords,
                 'accessToken': self.__token}
         response = requests.get(
             "https://api.videoindexer.ai/{}/Accounts/{}/Videos?"
             .format(self.__loc, self.__id), 
             params=params).json()
-
+        """
         # all matching videos
         found_matches = set()
-        for result in response['results']:
-            print(result)
-            found_matches.add(int(result['externalId']))
+        for word in keywords:
+            if word in self.tags.keys():
+                found_matches.add(self.tags[word])
 
         # all matching videos
         found_paths = list()        

@@ -60,7 +60,7 @@ class ArchivisteFrame(wx.Frame):
         self.sizer.AddSpacer(10)
         self.sizer.Add(self.search_panel, 0, wx.ALIGN_CENTER)
         self.sizer.AddSpacer(10)
-        self.sizer.Add(self.search_results, 0, wx.ALIGN_CENTER)
+        self.sizer.Add(self.search_results, 0, wx.ALIGN_CENTER, wx.ALIGN_CENTRE_HORIZONTAL)
         self.sizer.AddSpacer(20)
         
         # Layout sizer
